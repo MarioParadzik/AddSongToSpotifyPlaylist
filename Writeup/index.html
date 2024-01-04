@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add song to spotfy playlist</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="./styles/index.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+</head>
+
+<body>
+
+    <header>
+        <h1>How to add song to spotify playlist?</h1>
+        <h4> Automating Spotify playlist management with an Azure Function and Siri </h4>
+    </header>
+
+    <article>
+        <h2>Introduction</h2>
+        <p>It often happens that I stumble upon a good new song that I would like to save for later, without having to remember the name.</p>
+        <blockquote>
+            <p><em>“Hey Siri - add this song to my playlist!”</em></p>
+          
+            <img src="images/noSupport.jpg" alt="No support from spotify" class="image">
+          
+            <p>Not helpful…</p>
+        </blockquote>
+        <p>Siri and Spotify already have some integrations, but the one I needed was not available.</p>
+        <p><a href="https://support.spotify.com/us/article/siri-and-spotify/" alt="Spotify-Siri">Spotify and Siri integration.</a> - Read more.</p>
+        <p>In order to add the currently playing song, I need to do a few steps to make it work, but I wanted to do it in 1. As you'll see in this guide I decided to leverage a Siri Shortcut to trigger a simple Azure Function.</p>
+        <h2>Setup</h2>
+        <p>In order to realize my idea I decided to use <b>.Net</b> and <b>Azure Functions</b>.</p>
+        <p>Since I decided to use .Net, I've been using visual studio as my IDE and i followed the 
+            <a href="https://learn.microsoft.com/en-us/azure/azure-functions/functions-create-your-first-function-visual-studio" alt="Spotify-Siri">First C# function in Azure using Visual Studio</a> 
+        docs.</p>
+        <p>After following all the steps from the link, you can add the additional packages that we used through the nuget package manager.</p>
+        <pre><code>package Azure.Identity
+package Azure.Security.KeyVault.Secrets
+package Newtonsoft.Json
+        </code></pre>
+        <p>I opted for a keyvault so that we could securely store our sensitive data and thats why we needed some other packages.</p>
+        <h2>Spotify application</h2>
+        <p>If you don't have a spotify account, you need to create one and then log in to <a href="https://developer.spotify.com/" alt="Spotify developer">their site.</a></p>
+        <p>There you need to create an application that you will configure and get the necessary data for authentication.</p>
+        <p>When you go to the application settings, you can see the <b>ClientId</b> and <b>ClientSecret</b> when you expand. It is important that your redirect uri is your callback function route, because after the user approves the authorization, the flow is  redirected there.</p>
+        <h2>Resources</h2>
+        <p>After setting up the project following the example, we can immediately create resources on azure that we plan to use.</p>
+        <p>For this project you will need:</p>
+        <ol>
+            <li>Azure Function App</li>
+            <li>Azure Storage Account</li>
+            <li>Azure Key Vault</li>
+            <li>Azure Application insights (optional > logging)</li>
+          </ol>
+        <p>
+            Some resources will automatically be created for you after you deploy your function following the docs i linked in setup. You just need to publish your application.
+        </p>
+        <img src="images/deploy.png" alt="No support from spotify" class="image">
+        <h2>Authorization</h2>
+        <p>Since we used scoped data in this example, I decided to use <a href="https://developer.spotify.com/documentation/web-api/tutorials/code-flow" alt="Spotify-Siri">Authorization Code Flow</a>.</p>
+        <p>In this Spotify documentation you can read how to implement that flow to access users data and see my class <b>SpotifyAuthorization</b> where I implemented that flow in C#</p>
+        <p>I followed every step by this article and decited to store the returned tokens in Key Vault.</p>
+        <pre><code><span class="darkblue">string</span> <span class="lightblue">responseContent</span> = <span class="darkblue">await</span> <span class="lightblue">res</span>.Content.<span class="yellow">ReadAsStringAsync</span>();
+if (<span class="lightblue">responseContent </span> != <span class="darkblue">null</span>)
+{
+    <span class="green">JObject</span> <span class="lightblue">tokenData</span> = <span class="green">JObject</span>.<span class="yellow">Parse</span>(<span class="lightblue">responseContent</span>);
+    <span class="darkblue">await</span> <span class="green">HelperMethods</span>.<span class="yellow">SetSecretAsync</span>(<span class="green">KeyVaultName</span>.AccessToken, (<span class="darkblue">string</span>)<span class="lightblue">tokenData</span>[<span class="orange">"access_token"</span>]!);
+    <span class="darkblue">await</span> <span class="green">HelperMethods</span>.<span class="yellow">SetSecretAsync</span>(<span class="green">KeyVaultName</span>.RefreshToken, (<span class="darkblue">string</span>)<span class="lightblue">tokenData</span>[<span class="orange">"refresh_token"</span>]!);
+    <span class="darkblue">await</span> <span class="green">HelperMethods</span>.<span class="yellow">SetSecretAsync</span>(<span class="green">KeyVaultName</span>.ExpiresIn, <span class="green">DateTime</span>.Now.<span class="yellow">AddMinutes</span>(RefreshTokenExpirationMinutes).<span class="yellow">ToString</span>());
+
+    <span class="lightblue">_logger</span>.<span class="yellow">LogError</span>(<span class="orange">"[+] Secrets set."</span>);
+    <span class="lightblue">response</span>.StatusCode = HttpStatusCode.OK;
+    <span class="lightblue">response</span>.<span class="yellow">WriteString</span>(<span class="orange">"Authorization successful!!"</span>);
+}
+                    </code></pre>
+        <p>Later we used those tokens in another function to retrieve the data we need.</p>
+
+        <h2>Adding song to playlist</h2>
+        <p>After that we set up the project and created the resources and did the authorization part with spotify, we can start coding the part that we initially wanted.</p>
+        <p>We call our function with a GET call like this:</p>
+        <pre><code>curl <span class="darkblue">-X</span> GET<span class="nt">-H</span> <span class="s2">"Content-Type: application/json"'http://yourfunctionName.azurewebsites.net/api/SpotifyAddSongToPlaylistFunction?passpharse=YourPasspharse'</span>
+            </code></pre>
+
+        <p>After calling the function, it checks the provided passpharse, which serves as a simple authentication,</p>
+        <p>If it is correct, we continue on to check if the value of the access token provided by spotify has expired. If it has expired, we use the <b>refresh token</b> to refresh our access token and perform our function for which we need the scoped data from spotify.</p>
+        <p>All the logic that I implemented for refreshing the token can be seen in the <b>RefreshAccessToken</b> method, which in turn is created according to the example of the
+            <a href="https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens" alt="Spotify-Refresh-Tokens">Official Spotify documentation for refreshing tokens</a>.</p>
+        <p>After we have the access token, we can retrieve the scoped data, so I set out to retrieve the currently playing song, by the following code.</p>
+        <pre><code>
+<span class="green">// Preparing client by example - https://developer.spotify.com/documentation/web-api/reference/get-recently-played</span>
+<span class="darkblue">using var</span> <span class="lightblue">client</span> = <span class="darkblue">new</span> <span class="green">HttpClient</span>();
+<span class="lightblue">client</span>.DefaultRequestHeaders.Authorization = <span class="darkblue">new</span> <span class="green">AuthenticationHeaderValue</span>(<span class="orange">"Bearer"</span>, <span class="darkblue">await</span> <span class="green">HelperMethods</span>.<span class="yellow">GetSecretAsync</span>(<span class="orange">"AccessToken"</span>));
+<span class="green">HttpResponseMessage</span> <span class="lightblue">res</span> = <span class="darkblue">await</span> <span class="lightblue">client</span>.<span class="yellow">GetAsync</span>(<span class="green">Endpoints</span>.CurrentlyPlaying);
+        </code></pre>
+        <p>If the call was successful and we received a response, then we extract the item uri which is the trackId.</p>
+        <pre><code>
+<span class="darkblue">string</span>? <span class="lightblue">trackId</span> = <span class="green">JObject</span>.<span class="yellow">Parse</span>(<span class="darkblue">await</span> <span class="lightblue">res</span>.Content.<span class="yellow">ReadAsStringAsync</span>())?.<span class="yellow">SelectToken</span>(<span class="orange">"item.uri"</span>)?.<span class="yellow">Value</span><string>();
+        </code></pre>
+        <p>Once we have the track id, we can set up a POST call to add a song to a specific playlist.</p>
+        <pre><code>
+<span class="darkblue">var</span> <span class="lightblue">jsonPayload</span> = <span class="green">JsonConvert</span>.<span class="yellow">SerializeObject</span>(<span class="darkblue">new</span> { uris = <span class="darkblue">new</span>[] { <span class="lightblue">trackId</span> } });
+<span class="darkblue">string</span> <span class="lightblue">uri</span> = <span class="orange">$"https://api.spotify.com/v1/playlists/</span>{<span class="green">HelperMethods</span>.<span class="yellow">GetEnvironmentVariable</span>(<span class="green">EnviornmentVariables</span>.PlaylistId)}<span class="orange">/tracks</span>";
+<span class="lightblue">res</span> = <span class="darkblue">await</span> <span class="lightblue">client</span>.<span class="yellow">PostAsync</span>(<span class="lightblue">uri</span>, <span class="darkblue">new</span> <span class="green">StringContent</span>(<span class="lightblue">jsonPayload</span>, <span class="green">Encoding</span>.UTF8, <span class="orange">"application/json"</span>));            
+        </code></pre>
+        <p>And that is it, we finished this function!</p>
+        <h2>Siri integration</h2>
+        <p>We can add a new action to the <b>Shortcuts</b> application and then select <b>Get Contents of URL</b></p>
+        <p>Here is my example: </p>
+        <img src="images/shortcutConfiguration.jpg" alt="Shortcut configuration" class="image">
+        <p>After you created this shortcut you can trigger your function manualy by clicking or you can call Siri</p>
+        <blockquote>
+            <p><em>“Hey Siri - Add This Song To My Playlist!”</em></p>
+            <br/>
+            <p>After that call, the song will soon be added to your defined playlist and you can continue enjoying it.</p>
+        </blockquote>
+        <h2>Conclusion</h2>
+        <p>I hope that I managed to help someone or at least give an idea about a similar project. I wanted to do the same for youtube, but their api is not that advanced yet.</p>
+        <div class="feedback">
+            Found a mistake or typo in this post? &nbsp;
+            <a class="feedback-links" href="https://github.com/MarioParadzik/AddSongToSpotifyPlaylist/issues?q=is%3Aopen">Suggest edit</a>
+            <br>
+            Have a comment?
+            <a class="feedback-links" href="/contact">Let me know <i class="fa fa-envelope green"></i></a>
+            <br> 
+            This post was helpful?
+            <a class="feedback-links" href="https://www.buymeacoffee.com/marioparadzik">Buy me a coffee! <i class="fa fa-coffee yellow"></i></a>
+          </div>
+    </article>
+
+    <footer>
+        <p>&copy; 2024 Mario Paradžik. All rights reserved.</p>
+    </footer>
+
+</body>
+
+</html>

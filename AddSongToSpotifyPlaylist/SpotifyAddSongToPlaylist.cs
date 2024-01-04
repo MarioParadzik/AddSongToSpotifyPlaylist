@@ -13,10 +13,13 @@ public static class SpotifyAddSongToPlaylist
 
     [Function(FunctionNames.SpotifyAddSongToPlaylistFunction)]
     public static async Task<HttpResponseData> SpotifyAddSongToPlaylistFunction(
-    [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req, ILogger _logger)
+    [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req, FunctionContext executionContext)
     {
         var response = req.CreateResponse();
         response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
+
+        var _logger = executionContext.GetLogger(FunctionNames.SpotifyAddSongToPlaylistFunction);
+
         try
         {
             // Read the query string
@@ -129,8 +132,11 @@ public static class SpotifyAddSongToPlaylist
                 await HelperMethods.SetSecretAsync(KeyVaultName.ExpiresIn, DateTime.Now.AddMinutes(SpotiyAuthorization.RefreshTokenExpirationMinutes).ToString());
                 _logger.LogError("[+] Token refreshed and updated.");
             }
+        } else
+        {
+            _logger.LogError("[-] Error while trying to refresh token.");
         }
-        _logger.LogError("[-] Error while trying to refresh token.");
+        
     }
 
 }

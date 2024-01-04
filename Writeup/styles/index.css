@@ -1,0 +1,114 @@
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-image: url("/images/african-young-man-portrait-with-headphones-dark-wall-with-copy-space.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: 0cm;
+    color: #fff;
+    text-align: center;
+    padding: 6em;
+}
+
+article {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #428d46;
+}
+h4 {
+    color: #99d69c;
+}
+
+p, li{
+    color: #555;
+}
+
+a{
+    color: #428d46;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+footer {
+    text-align: center;
+    padding: 1em;
+    background-color: #333;
+    color: #fff;
+}
+
+.image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+blockquote {
+    border-left: 4px solid #93db46;
+    padding-left: 15px;
+    font-size: 18px;
+    letter-spacing: -1px;
+    font-style: italic;
+}
+
+pre {
+    border-radius: 3px;
+    padding: 0px 12px;
+    overflow-x: scroll;
+    background-color: #f5f5f5;
+}
+
+.yellow{
+    color: rgb(92, 92, 2);
+}
+
+.green{
+    color: green;
+}
+
+.darkblue{
+    color: #032963;
+}
+
+.lightblue{
+    color: #5c93e6;
+}
+
+.orange{
+    color: rgb(170, 87, 31);
+}
+
+.feedback{
+    color: gray;
+    font-style: normal;
+    font-size: small
+}
+
+.feedback-links{
+    color: #222222;
+    font-style: normal;
+    font-weight: 900;
+    text-decoration:none
+}
+
+@media screen and (max-width: 600px) {
+    .image {
+        max-width: 100%;
+        margin: 0;
+    }
+
+    article {
+        padding: 10px;
+    }
+}

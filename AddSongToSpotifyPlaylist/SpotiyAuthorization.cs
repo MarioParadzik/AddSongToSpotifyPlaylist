@@ -12,7 +12,7 @@ internal class SpotiyAuthorization
 {
     public const int RefreshTokenExpirationMinutes = 55;
     [Function(FunctionNames.SpotifyAuthorizationFunction)]
-    public static HttpResponseData Run(
+    public static HttpResponseData SpotifyAuthorizationFunction(
     [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
         // Implementation of the Spotify authorization code flow 
@@ -31,10 +31,12 @@ internal class SpotiyAuthorization
 
     [Function(FunctionNames.SpotifyCallbackFunction)]
     public static async Task<HttpResponseData> Callback(
-    [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req, ILogger _logger)
+    [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req, FunctionContext executionContext)
     {
         var response = req.CreateResponse();
         response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
+
+        var _logger = executionContext.GetLogger(FunctionNames.SpotifyCallbackFunction);
         try
         {
             // Exchange authorization code for access token
