@@ -38,4 +38,4 @@ The resources I used in Azure :
 
 ## Writeup
 
-Comming soon...
+https://marioparadzik.github.io/
